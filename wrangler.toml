@@ -1,0 +1,39 @@
+# This file IS committed to the public repo. Anything secret lives in
+# Cloudflare via `wrangler secret put <NAME>` and is never echoed here.
+# See SETUP.md for the full env var list.
+
+name = "gruhome"
+main = "worker/index.ts"
+compatibility_date = "2025-01-15"
+
+# Serve the built React SPA from /dist. The Worker handles /api/* and
+# /approve; everything else falls back to index.html for the SPA.
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+# Daily overdue reminder — 09:00 IST = 03:30 UTC (IST = UTC+5:30, no DST).
+[triggers]
+crons = ["30 3 * * *"]
+
+# ---------------------------------------------------------------------
+# Non-secret vars. Edit these in the Cloudflare dashboard
+# (Workers & Pages → gruhome → Settings → Variables) so changes don't
+# require a code commit. Sensible defaults below; the dashboard wins.
+# ---------------------------------------------------------------------
+[vars]
+APP_BASE_URL = "https://gruhome.example.workers.dev"
+SALESPEOPLE = ""
+APPROVER_1_NAME = "Owner"
+APPROVER_2_NAME = "Manager"
+
+# ---------------------------------------------------------------------
+# Secrets (NEVER add here — `wrangler secret put <NAME>` instead):
+#   NOTION_TOKEN
+#   NOTION_CATALOGUE_DB_ID
+#   NOTION_DISPATCH_DB_ID
+#   PUMBLE_WEBHOOK_URL          (optional — leave blank to disable Pumble)
+#   PUMBLE_WEBHOOK_URL_STAFF    (optional — leave blank to disable Pumble)
+#   ADMIN_PIN
+# ---------------------------------------------------------------------

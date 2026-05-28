@@ -1,0 +1,17 @@
+# Copy to `.dev.vars` for local `npm run dev`. Never commit `.dev.vars`.
+# In production, set these via `wrangler secret put <NAME>` or the
+# Cloudflare dashboard (Workers & Pages → gruhome → Settings → Variables).
+
+NOTION_TOKEN=secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+NOTION_CATALOGUE_DB_ID=00000000000000000000000000000000
+NOTION_DISPATCH_DB_ID=00000000000000000000000000000000
+PUMBLE_WEBHOOK_URL=https://api.pumble.com/workspaces/.../webhooks/...
+PUMBLE_WEBHOOK_URL_STAFF=https://api.pumble.com/workspaces/.../webhooks/...
+APP_BASE_URL=http://localhost:8787
+SALESPEOPLE=Neha,Amit,Ravi
+APPROVER_1_NAME=Owner
+APPROVER_2_NAME=Manager
+# PIN required to open the admin dashboard and to approve/reject/recall.
+# Pick 4–8 digits or any short string. Change it by re-running the
+# `wrangler secret put ADMIN_PIN` command.
+ADMIN_PIN=4729

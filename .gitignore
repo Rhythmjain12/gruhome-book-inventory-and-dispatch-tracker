@@ -1,0 +1,20 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+*.tsbuildinfo
+
+# Cloudflare local state + secrets
+.wrangler
+.dev.vars
+.dev.vars.local
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+*.log
+
+# Claude Code / per-machine config (don't leak personal paths)
+.claude
