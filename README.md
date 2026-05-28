@@ -59,9 +59,9 @@ When I scoped this with the founder, the recurring complaint wasn't "we need a f
 **For the founder** (the visibility path)
 - Every action writes back to Notion immediately — no parallel data system
 - Daily automated 9 AM IST overdue reminder
-- Full dispatch ledger (every event preserved forever) for future analytics
+- Full dispatch ledger — every event preserved as its own row in Notion
 
-**Preview mode for evaluators** — production runs against live Notion + Pumble, but the repo ships with a `DEMO_MODE=1` flag that short-circuits external calls with realistic fixtures. Anyone reading this README can clone, `npm run dev`, and explore the full UI in 30 seconds without provisioning anything. Useful during founder reviews; useful here.
+**Preview mode for evaluators** — production runs against live data, but the repo ships with a `DEMO_MODE=1` flag that short-circuits external calls with realistic fixtures. Anyone reading this README can clone, `npm run dev`, and explore the full UI in 30 seconds without provisioning anything.
 
 ## Decisions I had to make (and the rationale)
 
@@ -70,54 +70,30 @@ These are the product trade-offs that show up if you actually scope a tool like 
 #### 1. **Warn vs block on already-dispatched books**
 Each book is a single physical copy. If staff try to dispatch a book that's already out, the technically correct behavior is to block. But in reality: sometimes the salesperson knows the other staff member has returned the book to a desk and Notion just hasn't caught up. **Decision: warn, don't block.** Trust staff judgment, surface the risk, let them decide. The audit log catches abuse.
 
-#### 2. **No login for staff in v1**
-Staff identity is "honor system" — pick your name once, the device remembers. Real auth (Cloudflare Access SSO) is on the v2 roadmap. **Why ship v1 without it?** The phones the team uses are personal, not shared. The cost of adding SSO upfront would have delayed launch by ~2 weeks; the realistic abuse vector (someone faking identity on a personal device) is low. The PIN gate on the *admin* side is the meaningful boundary.
+#### 2. **No login for staff**
+Staff identity is "honor system" — pick your name once, the device remembers. **Why?** The phones the team uses are personal, not shared. The realistic abuse vector (someone faking identity on a personal device) is low. The PIN gate on the *admin* side is the meaningful boundary.
 
 #### 3. **PIN over OAuth for admin**
-A 4-digit PIN, server-validated, sent as a bearer token. Not best-in-class security; it is best-in-class for *"the owner can use this on her phone in five seconds"*. SSO is v2, and easy to swap in.
+A 4-digit PIN, server-validated, sent as a bearer token. Not best-in-class security; it is best-in-class for *"the owner can use this on her phone in five seconds"*.
 
 #### 4. **Two Notion databases instead of one flat tracker**
-The founder had been using a single 600-row catalogue with embedded dispatch fields (Status, Date Given Out, Person Name). It worked until it didn't — recall destroys history, single book can't reflect "currently dispatched to Mrs. X AND historically dispatched to 12 others". **Decision: separate the catalogue (book identity) from the dispatch log (events).** Costs ~10 min of one-time DB setup, buys a permanent audit ledger and future analytics.
+The founder had been using a single 600-row catalogue with embedded dispatch fields (Status, Date Given Out, Person Name). It worked until it didn't — recall destroys history, single book can't reflect "currently dispatched to Mrs. X AND historically dispatched to 12 others". **Decision: separate the catalogue (book identity) from the dispatch log (events).** Costs ~10 min of one-time DB setup, buys a permanent audit ledger.
 
 #### 5. **Cloudflare Workers over a more traditional backend**
 Single-deploy, single-config, single-dashboard for env vars. A non-technical founder can manage it. Pages + separate cron Worker would have meant two deployments to babysit.
 
-## What's explicitly out of scope (v1)
+## How I'll know it worked
 
-| Out | Why deferred |
-|---|---|
-| Real auth (SSO) | Phase 2. Private URL + PIN is sufficient perimeter for v1 with 8 known users. |
-| Damage / condition logging on recall | Phase 3. No one had a clear workflow for it during discovery — would be inventing UX in a vacuum. |
-| Salesperson performance dashboards | Phase 3. Need 3–6 months of dispatch data before this is meaningful. |
-| Formal inter-store transfer flow | Phase 2. Currently logged as a dispatch with notes — works, just not pretty. |
-| Client-facing anything | Never. This is internal. |
-| CRM integration | Phase 4. No CRM exists yet. |
-
-Each deferral is a deliberate choice — not a backlog of "we ran out of time". v1's job is to stop the bleeding (lost books), not solve every problem.
-
-## How I'll know if v1 worked
-
-Success metrics agreed with the founder, measured after 60 days of live use:
+Success metrics agreed with the founder, measured from Notion data after 60 days of live use:
 
 | Metric | Target | How measured |
 |---|---|---|
 | **% of dispatches logged in the app** | >85% | App count ÷ founder's manual estimate of total dispatches |
-| **Median log-to-submit time** | <30s | Frontend telemetry (deferred to v1.1) |
-| **Approval response time** (median) | <30 min during working hours | Approved At − Date Sent in Notion |
+| **Approval response time** (median) | <30 min during working hours | `Approved At` − `Date Sent` in Notion |
 | **Books past return-by date** at any moment | <5 | Dashboard "Overdue" tile |
 | **Books reported missing per month** | 0 | Self-reported by team |
 
-If the dispatch-logging rate sits under 50%, the form is too slow. If overdue is consistently >10, the recall flow needs more teeth. Both have product fixes ready.
-
-## Roadmap
-
-| Phase | When | What |
-|---|---|---|
-| **v1** *(now)* | Day 0 | Core dispatch / approve / recall, PIN admin, Pumble notifications, daily overdue cron |
-| **v1.1** | Day 30 | Frontend telemetry on form-completion time, lightweight usage analytics for the founder |
-| **v2** | Month 2 | Cloudflare Access SSO (replaces PIN + honor system), formal inter-store transfer flow |
-| **v3** | Month 4 | Damage/condition logging, salesperson performance dashboards, monthly missing-book reports |
-| **v4** | Month 6+ | CRM integration if/when a CRM exists |
+If the dispatch-logging rate sits under 50%, the form is too slow. If overdue is consistently >10, the recall flow needs more teeth.
 
 ## Architecture & engineering notes
 
