@@ -52,7 +52,7 @@ export default function App() {
     <div className="app-shell">
       <header className="app-header">
         <div>
-          <div className="app-title">Gruhome — Sample Books</div>
+          <div className="app-title">Gruhome — Book Inventory &amp; Dispatch Tracker</div>
           <div className="app-subtitle">
             {view === "admin" ? "Manager view" : "Staff dispatch"}
           </div>
