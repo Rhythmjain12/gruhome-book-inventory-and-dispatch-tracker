@@ -73,6 +73,21 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ pin }),
     }),
+  updateConfig: (patch: {
+    salespeople?: string[];
+    approver1?: string;
+    approver2?: string;
+    adminPin?: string;
+  }) =>
+    request<{
+      salespeople: string[];
+      approvers: [string, string];
+      newPin?: string;
+    }>("/api/admin/update-config", {
+      method: "POST",
+      body: JSON.stringify(patch),
+      admin: true,
+    }),
   logBook: (payload: {
     salesperson: string;
     store: string;

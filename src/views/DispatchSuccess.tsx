@@ -1,24 +1,19 @@
 // Success screen after submission. Lists what was sent so staff have
-// confirmation, and offers a one-tap path back to the form for the next
-// client visit (the <30s flow).
+// confirmation, and offers a Share button + one-tap path back to the
+// form for the next client visit.
 
 import { Button } from "../components/primitives";
-
-interface BookSummary {
-  name: string;
-  category: string;
-}
+import { ShareButton } from "../components/ShareButton";
+import type { ShareSubject } from "../lib/share";
 
 interface Props {
-  dispatchId: string;
-  books: BookSummary[];
+  subject: ShareSubject;
   onNewDispatch: () => void;
   onViewMyDispatches: () => void;
 }
 
 export function DispatchSuccess({
-  dispatchId,
-  books,
+  subject,
   onNewDispatch,
   onViewMyDispatches,
 }: Props) {
@@ -30,10 +25,13 @@ export function DispatchSuccess({
       <div className="card">
         <h3 style={{ marginBottom: 12 }}>Dispatch summary</h3>
         <div style={{ fontSize: 13, color: "var(--ink-3)", marginBottom: 14, fontFamily: "monospace" }}>
-          ID {dispatchId.slice(0, 8)}…
+          ID {subject.dispatchId.slice(0, 8)}…
+        </div>
+        <div style={{ fontSize: 13, color: "var(--ink-2)", marginBottom: 14 }}>
+          {subject.clientName} · {subject.store} · return by {subject.returnBy}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {books.map((b, i) => (
+          {subject.books.map((b, i) => (
             <div
               key={i}
               style={{
@@ -47,12 +45,13 @@ export function DispatchSuccess({
             </div>
           ))}
         </div>
-        <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
-          <Button variant="primary" onClick={onNewDispatch}>
+        <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
+          <ShareButton subject={subject} variant="primary" />
+          <Button variant="secondary" onClick={onNewDispatch}>
             New dispatch
           </Button>
-          <Button variant="secondary" onClick={onViewMyDispatches}>
-            View my dispatches
+          <Button variant="ghost" onClick={onViewMyDispatches}>
+            My dispatches
           </Button>
         </div>
       </div>

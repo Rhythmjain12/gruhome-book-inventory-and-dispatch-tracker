@@ -11,10 +11,14 @@ import { handleLogBook } from "./routes/logBook";
 import { handleApproveLink, handleApprovePost } from "./routes/approveBook";
 import { handleRecallBook } from "./routes/recallBook";
 import { handleAdminLogin } from "./routes/adminLogin";
+import { handleUpdateConfig } from "./routes/updateConfig";
 import { runOverdueCheck } from "./routes/overdueCheck";
 
 export interface Env {
   ASSETS: Fetcher;
+
+  /** Runtime-editable config (salespeople, approver names, admin PIN). */
+  CONFIG_KV: KVNamespace;
 
   NOTION_TOKEN: string;
   NOTION_CATALOGUE_DB_ID: string;
@@ -22,11 +26,10 @@ export interface Env {
   PUMBLE_WEBHOOK_URL: string;
   PUMBLE_WEBHOOK_URL_STAFF: string;
   APP_BASE_URL: string;
+  /** Initial seed values. Once KV is populated these are ignored. */
   SALESPEOPLE: string;
   APPROVER_1_NAME: string;
   APPROVER_2_NAME: string;
-  /** PIN / password protecting the admin dashboard and all mutations.
-   *  Sent by the client as `Authorization: Bearer <PIN>`. */
   ADMIN_PIN: string;
   /** When "1", reads return canned data and writes succeed without
    *  touching Notion/Pumble. Visual-preview only — never set in prod. */
@@ -72,6 +75,10 @@ export default {
       if (url.pathname === "/api/admin-login") {
         if (method !== "POST") return methodNotAllowed();
         return await handleAdminLogin(request, env);
+      }
+      if (url.pathname === "/api/admin/update-config") {
+        if (method !== "POST") return methodNotAllowed();
+        return await handleUpdateConfig(request, env);
       }
       if (url.pathname === "/api/log-book") {
         if (method !== "POST") return methodNotAllowed();

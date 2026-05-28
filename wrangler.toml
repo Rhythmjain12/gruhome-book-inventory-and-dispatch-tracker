@@ -17,6 +17,14 @@ not_found_handling = "single-page-application"
 [triggers]
 crons = ["30 3 * * *"]
 
+# Runtime-editable config (salespeople, approver names, admin PIN).
+# On first read after this namespace is empty, the worker seeds it from
+# env vars; after that, KV is the source of truth and the Settings UI
+# writes to it.
+[[kv_namespaces]]
+binding = "CONFIG_KV"
+id = "d8f25367fc3f4e549c9584969d408517"
+
 # ---------------------------------------------------------------------
 # All env vars (secrets AND non-secrets) live in Cloudflare, set via
 # `wrangler secret put <NAME>` or the dashboard. We deliberately keep

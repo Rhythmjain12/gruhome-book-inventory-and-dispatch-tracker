@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import type { Book, Category, Store } from "../types";
 import { useCatalogue, invalidateCatalogue } from "../lib/catalogueCache";
 import { api, ApiError } from "../lib/api";
+import type { ShareSubject } from "../lib/share";
 import {
   Alert,
   Button,
@@ -36,7 +37,7 @@ interface SelectedBook {
 
 interface Props {
   salesperson: string;
-  onSubmitted: (dispatchId: string, books: SelectedBook[]) => void;
+  onSubmitted: (subject: ShareSubject) => void;
 }
 
 export function DispatchForm({ salesperson, onSubmitted }: Props) {
@@ -136,7 +137,17 @@ export function DispatchForm({ salesperson, onSubmitted }: Props) {
       // for the just-dispatched books — drop the cache so the next form
       // open re-fetches.
       invalidateCatalogue();
-      onSubmitted(dispatchId, selected);
+      onSubmitted({
+        action: "submitted",
+        dispatchId,
+        clientName: clientName.trim(),
+        clientAddress: clientAddress.trim(),
+        clientPhone: clientPhone.trim(),
+        store,
+        returnBy,
+        salesperson,
+        books: selected.map((s) => ({ name: s.name, category: s.category })),
+      });
     } catch (e2) {
       setFormError(
         e2 instanceof ApiError

@@ -1,23 +1,14 @@
-// GET /api/get-config — returns the salesperson list and approver names
-// so the founder can change them via Cloudflare env vars without a deploy.
+// GET /api/get-config — returns the salesperson list and approver names.
+// Reads from KV (which auto-seeds from env vars on first call).
 
 import type { Env } from "../index";
+import { readConfig } from "../lib/configStore";
 
-function parseList(raw: string | undefined): string[] {
-  if (!raw) return [];
-  return raw
-    .split(",")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-}
-
-export function handleGetConfig(env: Env): Response {
+export async function handleGetConfig(env: Env): Promise<Response> {
+  const config = await readConfig(env);
   const body = {
-    salespeople: parseList(env.SALESPEOPLE),
-    approvers: [
-      env.APPROVER_1_NAME || "Owner",
-      env.APPROVER_2_NAME || "Manager",
-    ] as [string, string],
+    salespeople: config.salespeople,
+    approvers: [config.approver1, config.approver2] as [string, string],
   };
   return new Response(JSON.stringify(body), {
     headers: { "content-type": "application/json" },

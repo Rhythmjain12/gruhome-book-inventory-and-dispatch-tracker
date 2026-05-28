@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../lib/api";
 import type { Dispatch } from "../types";
+import type { ShareSubject } from "../lib/share";
 import {
   Alert,
   Button,
@@ -22,14 +23,9 @@ interface Props {
 
 type Tab = "new" | "mine";
 
-interface JustSubmitted {
-  dispatchId: string;
-  books: Array<{ name: string; category: string }>;
-}
-
 export function StaffView({ salesperson, onSignOut }: Props) {
   const [tab, setTab] = useState<Tab>("new");
-  const [justSubmitted, setJustSubmitted] = useState<JustSubmitted | null>(null);
+  const [justSubmitted, setJustSubmitted] = useState<ShareSubject | null>(null);
 
   return (
     <div>
@@ -61,8 +57,7 @@ export function StaffView({ salesperson, onSignOut }: Props) {
       {tab === "new" &&
         (justSubmitted ? (
           <DispatchSuccess
-            dispatchId={justSubmitted.dispatchId}
-            books={justSubmitted.books}
+            subject={justSubmitted}
             onNewDispatch={() => setJustSubmitted(null)}
             onViewMyDispatches={() => {
               setJustSubmitted(null);
@@ -72,12 +67,7 @@ export function StaffView({ salesperson, onSignOut }: Props) {
         ) : (
           <DispatchForm
             salesperson={salesperson}
-            onSubmitted={(dispatchId, books) =>
-              setJustSubmitted({
-                dispatchId,
-                books: books.map((b) => ({ name: b.name, category: b.category })),
-              })
-            }
+            onSubmitted={setJustSubmitted}
           />
         ))}
 

@@ -14,6 +14,9 @@ import {
   Pill,
   StatusBadge,
 } from "../components/primitives";
+import { SettingsView } from "./SettingsView";
+import { ShareButton } from "../components/ShareButton";
+import type { ShareAction, ShareSubject } from "../lib/share";
 
 interface Props {
   approver: string;
@@ -49,7 +52,10 @@ function borderForRow(d: Dispatch, today: string): string {
   return "var(--border-strong)";
 }
 
+type AdminTab = "dashboard" | "settings";
+
 export function AdminView({ approver, onSignOut, onLock }: Props) {
+  const [tab, setTab] = useState<AdminTab>("dashboard");
   const [items, setItems] = useState<Dispatch[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all-active");
@@ -140,88 +146,103 @@ export function AdminView({ approver, onSignOut, onLock }: Props) {
         </div>
       </div>
 
-      {error && <Alert variant="red">{error}</Alert>}
-
-      {metrics.pending > 0 && (
-        <Alert variant="amber">
-          {metrics.pending} dispatch{metrics.pending === 1 ? "" : "es"} waiting
-          for approval. Open one to action it.
-        </Alert>
-      )}
-
-      <div
-        className="metric-grid"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 12,
-          marginBottom: 18,
-        }}
-      >
-        <MetricTile label="Dispatches out" value={metrics.out} tone="blue" />
-        <MetricTile label="Books in field" value={metrics.books} />
-        <MetricTile label="Overdue" value={metrics.overdue} tone={metrics.overdue ? "red" : "default"} />
-        <MetricTile label="Pending" value={metrics.pending} tone={metrics.pending ? "amber" : "default"} />
-      </div>
-
-      <div className="pill-row" style={{ marginBottom: 10 }}>
-        {STATUS_FILTERS.map((f) => (
-          <Pill
-            key={f.key}
-            active={statusFilter === f.key}
-            onClick={() => setStatusFilter(f.key)}
-          >
-            {f.label}
-          </Pill>
-        ))}
-      </div>
       <div className="pill-row" style={{ marginBottom: 18 }}>
-        {STORE_FILTERS.map((s) => (
-          <Pill
-            key={s}
-            active={storeFilter === s}
-            onClick={() => setStoreFilter(s)}
+        <Pill active={tab === "dashboard"} onClick={() => setTab("dashboard")}>
+          Dashboard
+        </Pill>
+        <Pill active={tab === "settings"} onClick={() => setTab("settings")}>
+          Settings
+        </Pill>
+      </div>
+
+      {tab === "settings" ? (
+        <SettingsView />
+      ) : (
+        <>
+          {error && <Alert variant="red">{error}</Alert>}
+
+          {metrics.pending > 0 && (
+            <Alert variant="amber">
+              {metrics.pending} dispatch{metrics.pending === 1 ? "" : "es"} waiting
+              for approval. Open one to action it.
+            </Alert>
+          )}
+
+          <div
+            className="metric-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, 1fr)",
+              gap: 12,
+              marginBottom: 18,
+            }}
           >
-            {s === "All" ? "All stores" : s}
-          </Pill>
-        ))}
-      </div>
+            <MetricTile label="Dispatches out" value={metrics.out} tone="blue" />
+            <MetricTile label="Books in field" value={metrics.books} />
+            <MetricTile label="Overdue" value={metrics.overdue} tone={metrics.overdue ? "red" : "default"} />
+            <MetricTile label="Pending" value={metrics.pending} tone={metrics.pending ? "amber" : "default"} />
+          </div>
 
-      {items === null && !error && (
-        <div style={{ color: "var(--ink-3)", padding: 24 }}>Loading…</div>
-      )}
+          <div className="pill-row" style={{ marginBottom: 10 }}>
+            {STATUS_FILTERS.map((f) => (
+              <Pill
+                key={f.key}
+                active={statusFilter === f.key}
+                onClick={() => setStatusFilter(f.key)}
+              >
+                {f.label}
+              </Pill>
+            ))}
+          </div>
+          <div className="pill-row" style={{ marginBottom: 18 }}>
+            {STORE_FILTERS.map((s) => (
+              <Pill
+                key={s}
+                active={storeFilter === s}
+                onClick={() => setStoreFilter(s)}
+              >
+                {s === "All" ? "All stores" : s}
+              </Pill>
+            ))}
+          </div>
 
-      {items !== null && visible.length === 0 && (
-        <div className="card" style={{ textAlign: "center", padding: 32, color: "var(--ink-3)" }}>
-          Nothing in this view.
-        </div>
-      )}
+          {items === null && !error && (
+            <div style={{ color: "var(--ink-3)", padding: 24 }}>Loading…</div>
+          )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {visible.map((d) => (
-          <DispatchRow
-            key={d.dispatchId}
-            dispatch={d}
-            today={today}
-            onClick={() => setOpenId(d.dispatchId)}
+          {items !== null && visible.length === 0 && (
+            <div className="card" style={{ textAlign: "center", padding: 32, color: "var(--ink-3)" }}>
+              Nothing in this view.
+            </div>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {visible.map((d) => (
+              <DispatchRow
+                key={d.dispatchId}
+                dispatch={d}
+                today={today}
+                onClick={() => setOpenId(d.dispatchId)}
+              />
+            ))}
+          </div>
+
+          <DispatchDetailModal
+            open={openItem !== null}
+            dispatch={openItem}
+            approver={approver}
+            onClose={() => setOpenId(null)}
+            onChanged={(message) => {
+              setOpenId(null);
+              setToast(message);
+              refresh();
+            }}
           />
-        ))}
-      </div>
 
-      <DispatchDetailModal
-        open={openItem !== null}
-        dispatch={openItem}
-        approver={approver}
-        onClose={() => setOpenId(null)}
-        onChanged={(message) => {
-          setOpenId(null);
-          setToast(message);
-          refresh();
-        }}
-      />
-
-      {toast && (
-        <Toast message={toast} onDismiss={() => setToast(null)} />
+          {toast && (
+            <Toast message={toast} onDismiss={() => setToast(null)} />
+          )}
+        </>
       )}
     </div>
   );
@@ -287,14 +308,29 @@ interface ModalProps {
   onChanged: (message: string) => void;
 }
 
+interface ActionResult {
+  action: ShareAction;
+  alreadyActioned?: boolean;
+  actionedBy?: string;
+}
+
+const ACTION_HEADLINE: Record<ShareAction, { title: string; tone: "green" | "red" | "amber" }> = {
+  submitted: { title: "Submitted", tone: "green" },
+  approved: { title: "Approved ✓", tone: "green" },
+  rejected: { title: "Rejected ✕", tone: "red" },
+  recalled: { title: "Recalled ↩", tone: "amber" },
+};
+
 function DispatchDetailModal({ open, dispatch, approver, onClose, onChanged }: ModalProps) {
   const [busy, setBusy] = useState<"approve" | "reject" | "recall" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<ActionResult | null>(null);
 
-  // Reset error/busy whenever the modal opens a different dispatch.
+  // Reset state whenever the modal opens a different dispatch.
   useEffect(() => {
     setError(null);
     setBusy(null);
+    setResult(null);
   }, [dispatch?.dispatchId]);
 
   if (!dispatch) return <Modal open={open} onClose={onClose} title="">{null}</Modal>;
@@ -307,12 +343,12 @@ function DispatchDetailModal({ open, dispatch, approver, onClose, onChanged }: M
     setBusy(kind);
     setError(null);
     try {
-      const result = await api.approveBook(dispatch.dispatchId, kind, approver);
-      if (result.alreadyActioned) {
-        onChanged(`Already actioned by ${result.actionedBy ?? "another approver"}.`);
-      } else {
-        onChanged(kind === "approve" ? "Approved." : "Rejected.");
-      }
+      const res = await api.approveBook(dispatch.dispatchId, kind, approver);
+      setResult({
+        action: kind === "approve" ? "approved" : "rejected",
+        alreadyActioned: res.alreadyActioned,
+        actionedBy: res.actionedBy,
+      });
     } catch (e) {
       setError(e instanceof ApiError ? e.message : String(e));
     } finally {
@@ -326,7 +362,7 @@ function DispatchDetailModal({ open, dispatch, approver, onClose, onChanged }: M
     setError(null);
     try {
       await api.recallBook(dispatch.dispatchId, approver);
-      onChanged("Marked recalled.");
+      setResult({ action: "recalled" });
     } catch (e) {
       setError(e instanceof ApiError ? e.message : String(e));
     } finally {
@@ -334,6 +370,91 @@ function DispatchDetailModal({ open, dispatch, approver, onClose, onChanged }: M
     }
   }
 
+  function finish() {
+    const message = result
+      ? result.alreadyActioned
+        ? `Already actioned by ${result.actionedBy ?? "another approver"}.`
+        : ACTION_HEADLINE[result.action].title
+      : "";
+    onChanged(message);
+  }
+
+  // -------- Success state (after action) --------
+  if (result) {
+    const head = ACTION_HEADLINE[result.action];
+    const subject: ShareSubject = {
+      action: result.action,
+      dispatchId: dispatch.dispatchId,
+      clientName: dispatch.clientName,
+      clientAddress: dispatch.clientAddress,
+      clientPhone: dispatch.clientPhone,
+      store: dispatch.store,
+      returnBy: dispatch.returnBy,
+      salesperson: dispatch.salesperson,
+      actionedBy: result.alreadyActioned
+        ? result.actionedBy
+        : result.action === "recalled" || result.action === "approved" || result.action === "rejected"
+          ? approver
+          : undefined,
+      books: dispatch.books.map((b) => ({ name: b.name, category: b.category })),
+    };
+
+    return (
+      <Modal
+        open={open}
+        onClose={finish}
+        title={head.title}
+        footer={
+          <>
+            <ShareButton subject={subject} variant="primary" label="Share" />
+            <Button variant="secondary" onClick={finish}>Done</Button>
+          </>
+        }
+      >
+        {result.alreadyActioned ? (
+          <Alert variant="amber">
+            Already actioned by {result.actionedBy ?? "another approver"}. Your
+            action was not applied.
+          </Alert>
+        ) : (
+          <Alert variant={head.tone}>
+            {result.action === "approved" && "Books are now Out in Field."}
+            {result.action === "rejected" && "Dispatch was rejected."}
+            {result.action === "recalled" && "All books marked recalled."}
+          </Alert>
+        )}
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 12 }}>
+          <DetailRow label="Client" value={dispatch.clientName} />
+          <DetailRow label="Store" value={dispatch.store} />
+          <DetailRow label="Salesperson" value={dispatch.salesperson} />
+          <DetailRow label="Phone" value={dispatch.clientPhone} />
+        </div>
+        <DetailRow label="Address" value={dispatch.clientAddress} />
+
+        <h3 style={{ marginTop: 14, marginBottom: 8, fontSize: 15 }}>
+          Books ({dispatch.books.length})
+        </h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {dispatch.books.map((b, i) => (
+            <div
+              key={`${b.bookId}|${i}`}
+              style={{
+                padding: "8px 12px",
+                background: "var(--sand-dark)",
+                borderRadius: "var(--radius)",
+              }}
+            >
+              <div style={{ fontWeight: 500 }}>{b.name}</div>
+              <div style={{ fontSize: 12, color: "var(--ink-3)" }}>{b.category}</div>
+            </div>
+          ))}
+        </div>
+      </Modal>
+    );
+  }
+
+  // -------- Detail state (before action) --------
   return (
     <Modal
       open={open}

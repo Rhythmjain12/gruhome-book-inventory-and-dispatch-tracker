@@ -174,7 +174,7 @@ export async function handleApproveLink(env: Env, url: URL): Promise<Response> {
 }
 
 export async function handleApprovePost(request: Request, env: Env): Promise<Response> {
-  const unauthorized = requireAdmin(request, env);
+  const unauthorized = await requireAdmin(request, env);
   if (unauthorized) return unauthorized;
 
   let body: { dispatchId?: string; action?: Action; approver?: string };

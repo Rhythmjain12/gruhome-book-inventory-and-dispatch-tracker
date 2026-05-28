@@ -1,15 +1,20 @@
 // PIN-based admin gate. The PIN is sent as a bearer token on every
-// privileged request. The server compares against ADMIN_PIN env var.
+// privileged request. We compare against the live PIN in KV (falling
+// back to the ADMIN_PIN env var until KV is seeded).
 //
 // This is Basic-Auth-grade security: fine for a private-URL internal
-// tool over HTTPS, not fine for a public endpoint. Phase 2 should
-// replace this with Cloudflare Access (Google SSO).
+// tool over HTTPS, not fine for a public endpoint.
 
 import type { Env } from "../index";
+import { readConfig } from "./configStore";
 
 /** Returns null if the request is authorised, or a 401 Response otherwise. */
-export function requireAdmin(request: Request, env: Env): Response | null {
-  const expected = (env.ADMIN_PIN ?? "").trim();
+export async function requireAdmin(
+  request: Request,
+  env: Env
+): Promise<Response | null> {
+  const config = await readConfig(env);
+  const expected = config.adminPin.trim();
   if (!expected) {
     return new Response(
       JSON.stringify({ error: "ADMIN_PIN is not configured on the server" }),

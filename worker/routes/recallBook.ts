@@ -20,7 +20,7 @@ import { demoJson, isDemo } from "../lib/demo";
 import { requireAdmin } from "../lib/auth";
 
 export async function handleRecallBook(request: Request, env: Env): Promise<Response> {
-  const unauthorized = requireAdmin(request, env);
+  const unauthorized = await requireAdmin(request, env);
   if (unauthorized) return unauthorized;
 
   let body: { dispatchId?: string; approver?: string };

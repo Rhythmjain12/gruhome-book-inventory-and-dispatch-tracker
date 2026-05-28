@@ -44,7 +44,7 @@ export async function handleGetBooks(
   // Salesperson-scope reads are part of the staff view and remain open
   // (Phase 1 honor system — see SETUP.md §7).
   if (!salesperson) {
-    const unauthorized = requireAdmin(request, env);
+    const unauthorized = await requireAdmin(request, env);
     if (unauthorized) return unauthorized;
   }
 
