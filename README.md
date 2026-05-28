@@ -82,6 +82,14 @@ The founder had been using a single 600-row catalogue with embedded dispatch fie
 #### 5. **Cloudflare Workers over a more traditional backend**
 Single-deploy, single-config, single-dashboard for env vars. A non-technical founder can manage it. Pages + separate cron Worker would have meant two deployments to babysit.
 
+## What I considered and dropped
+
+**Admin-side dispatching with one-click self-approval.** Mid-build I prototyped a "New dispatch" tab inside the admin view — the thinking being that owners occasionally hand books to clients themselves and shouldn't have to switch accounts to log it. The server endpoint and dual-button form ("Submit for approval" / "Submit & approve") were already wired up, PIN-gated, and atomically writing to Notion.
+
+When I walked the prototype past one of the approvers, the feedback was immediate: it would muddle the role boundaries. *"Staff dispatch, we approve"* is the cleanest split — letting that split blur would invite confusion (and audit ambiguity) in every case, to save a tab-switch in a rare one. They'd rather sign into the staff view on the odd occasion they personally hand off a book than have their dashboard try to do two jobs.
+
+Reverted the whole branch the same evening. The admin panel stays admin-only. The discipline to ship less is sometimes the work.
+
 ## How I'll know it worked
 
 Success metrics agreed with the founder, measured from Notion data after 60 days of live use:
