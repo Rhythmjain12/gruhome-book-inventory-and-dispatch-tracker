@@ -37,7 +37,11 @@ jobs:
       - name: Build frontend
         run: npx vite build
 
+      # Deploy only runs in the repo that has Cloudflare secrets configured
+      # (the gruhometeam mirror). The personal-account mirror still gets the
+      # type-check + build CI signal, but skips the deploy step cleanly.
       - name: Deploy to Cloudflare Workers
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
