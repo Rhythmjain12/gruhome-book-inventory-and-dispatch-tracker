@@ -38,8 +38,8 @@ export const DEMO_DISPATCHES = [
     purpose: "drawing room curtains",
     status: "Pending Approval",
     books: [
-      { bookId: "d1", name: "Warwick Velvet Collection Vol. 3", category: "Fabric" },
-      { bookId: "d8", name: "Sahco Velvet Lookbook", category: "Fabric" },
+      { bookId: "d1", name: "Warwick Velvet Collection Vol. 3", category: "Fabric", status: "Pending Approval" },
+      { bookId: "d8", name: "Sahco Velvet Lookbook", category: "Fabric", status: "Pending Approval" },
     ],
   },
   {
@@ -56,9 +56,9 @@ export const DEMO_DISPATCHES = [
     approvedBy: "Sunita Gupta",
     approvedAt: isoDays(-4),
     books: [
-      { bookId: "d5", name: "Hunter Douglas Roller Blinds", category: "Blinds" },
-      { bookId: "d7", name: "Edelman Italian Leather Swatches", category: "Leather" },
-      { bookId: "d2", name: "Warwick Linen Naturals", category: "Fabric" },
+      { bookId: "d5", name: "Hunter Douglas Roller Blinds", category: "Blinds", status: "Out in Field" },
+      { bookId: "d7", name: "Edelman Italian Leather Swatches", category: "Leather", status: "Recall Requested" },
+      { bookId: "d2", name: "Warwick Linen Naturals", category: "Fabric", status: "Out in Field" },
     ],
   },
   {
@@ -75,8 +75,8 @@ export const DEMO_DISPATCHES = [
     approvedBy: "Sunita Gupta",
     approvedAt: isoDays(-12),
     books: [
-      { bookId: "d3", name: "Cole & Son Wallpaper — Botanical", category: "Wallpaper" },
-      { bookId: "d11", name: "Zoffany — English Rose", category: "Wallpaper" },
+      { bookId: "d3", name: "Cole & Son Wallpaper — Botanical", category: "Wallpaper", status: "Out in Field" },
+      { bookId: "d11", name: "Zoffany — English Rose", category: "Wallpaper", status: "Out in Field" },
     ],
   },
   {
@@ -94,7 +94,7 @@ export const DEMO_DISPATCHES = [
     approvedAt: isoDays(-20),
     recalledAt: isoDays(-8),
     books: [
-      { bookId: "d10", name: "Pierre Frey — Heritage", category: "Upholstery" },
+      { bookId: "d10", name: "Pierre Frey — Heritage", category: "Upholstery", status: "Recalled", recalledAt: isoDays(-8) },
     ],
   },
 ];

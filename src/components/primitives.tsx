@@ -46,12 +46,16 @@ export function Pill({ active, onClick, children }: PillProps) {
 const STATUS_CLASS: Record<DispatchStatus, string> = {
   "Pending Approval": "badge-pending",
   "Out in Field": "badge-out",
+  "Recall Requested": "badge-pending",
+  "Partially Recalled": "badge-out",
   Recalled: "badge-recalled",
   Rejected: "badge-rejected",
 };
 const STATUS_LABEL: Record<DispatchStatus, string> = {
   "Pending Approval": "Pending",
   "Out in Field": "Out",
+  "Recall Requested": "Recall pending",
+  "Partially Recalled": "Partial",
   Recalled: "Recalled",
   Rejected: "Rejected",
 };

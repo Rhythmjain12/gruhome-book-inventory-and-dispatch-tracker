@@ -12,11 +12,22 @@ export type Category =
 
 export type Store = "Preet Vihar" | "Noida";
 
-export type DispatchStatus =
+/** Per-row status, as stored in Notion's Status Select column. */
+export type BookStatus =
   | "Pending Approval"
   | "Out in Field"
+  | "Recall Requested"
   | "Rejected"
   | "Recalled";
+
+/**
+ * Per-dispatch status surfaced by /api/get-books.
+ * The first four mirror the per-row values for uniform dispatches.
+ * The last two are *derived* from a mix of per-book states:
+ *   - "Recall Requested": at least one book is awaiting admin approval
+ *   - "Partially Recalled": some books Recalled + others still Out, no requests
+ */
+export type DispatchStatus = BookStatus | "Partially Recalled";
 
 export interface Book {
   /** Notion page ID (catalogue entry). Empty for books added manually at dispatch time. */
@@ -32,6 +43,8 @@ export interface DispatchBookEntry {
   bookId: string;
   name: string;
   category: Category;
+  status: BookStatus;
+  recalledAt?: string;
 }
 
 export interface Dispatch {

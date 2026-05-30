@@ -24,11 +24,12 @@ interface Props {
   onLock: () => void;
 }
 
-type StatusFilter = "all-active" | "pending" | "overdue" | "out" | "recalled";
+type StatusFilter = "all-active" | "pending" | "overdue" | "out" | "recall-pending" | "recalled";
 
 const STATUS_FILTERS: ReadonlyArray<{ key: StatusFilter; label: string }> = [
   { key: "all-active", label: "All active" },
-  { key: "pending", label: "Pending" },
+  { key: "pending", label: "Pending approval" },
+  { key: "recall-pending", label: "Recall pending" },
   { key: "overdue", label: "Overdue" },
   { key: "out", label: "In field" },
   { key: "recalled", label: "Recalled" },
@@ -47,7 +48,9 @@ function isOverdue(d: Dispatch, today: string): boolean {
 function borderForRow(d: Dispatch, today: string): string {
   if (isOverdue(d, today)) return "var(--red)";
   if (d.status === "Pending Approval") return "var(--amber)";
+  if (d.status === "Recall Requested") return "var(--amber)";
   if (d.status === "Out in Field") return "var(--blue)";
+  if (d.status === "Partially Recalled") return "var(--blue)";
   if (d.status === "Recalled") return "var(--green)";
   return "var(--border-strong)";
 }
@@ -88,12 +91,24 @@ export function AdminView({ approver, onSignOut, onLock }: Props) {
       overdue = 0,
       pending = 0;
     for (const d of items) {
-      if (d.status === "Out in Field") {
+      // "Out" tile counts dispatches with books still physically out:
+      // pure Out in Field, Partially Recalled, and Recall Requested
+      // (the request hasn't been actioned yet so books are still out).
+      if (
+        d.status === "Out in Field" ||
+        d.status === "Partially Recalled" ||
+        d.status === "Recall Requested"
+      ) {
         out++;
-        books += d.books.length;
+        // Only the books still Out are counted in the books-in-field tile.
+        books += d.books.filter((b) => b.status !== "Recalled").length;
         if (isOverdue(d, today)) overdue++;
       }
-      if (d.status === "Pending Approval") pending++;
+      // "Action needed" rolls up new dispatches awaiting approval AND
+      // recall requests awaiting confirmation.
+      if (d.status === "Pending Approval" || d.status === "Recall Requested") {
+        pending++;
+      }
     }
     return { out, books, overdue, pending };
   }, [items, today]);
@@ -105,8 +120,13 @@ export function AdminView({ approver, onSignOut, onLock }: Props) {
       switch (statusFilter) {
         case "pending":
           return d.status === "Pending Approval";
+        case "recall-pending":
+          return d.status === "Recall Requested";
         case "out":
-          return d.status === "Out in Field" && !isOverdue(d, today);
+          return (
+            (d.status === "Out in Field" || d.status === "Partially Recalled") &&
+            !isOverdue(d, today)
+          );
         case "overdue":
           return isOverdue(d, today);
         case "recalled":
@@ -163,8 +183,9 @@ export function AdminView({ approver, onSignOut, onLock }: Props) {
 
           {metrics.pending > 0 && (
             <Alert variant="amber">
-              {metrics.pending} dispatch{metrics.pending === 1 ? "" : "es"} waiting
-              for approval. Open one to action it.
+              {metrics.pending} item{metrics.pending === 1 ? "" : "s"} need
+              your attention (new approvals or recall requests). Open a row
+              to action.
             </Alert>
           )}
 
@@ -180,7 +201,7 @@ export function AdminView({ approver, onSignOut, onLock }: Props) {
             <MetricTile label="Dispatches out" value={metrics.out} tone="blue" />
             <MetricTile label="Books in field" value={metrics.books} />
             <MetricTile label="Overdue" value={metrics.overdue} tone={metrics.overdue ? "red" : "default"} />
-            <MetricTile label="Pending" value={metrics.pending} tone={metrics.pending ? "amber" : "default"} />
+            <MetricTile label="Action needed" value={metrics.pending} tone={metrics.pending ? "amber" : "default"} />
           </div>
 
           <div className="pill-row" style={{ marginBottom: 10 }}>
@@ -325,13 +346,23 @@ function DispatchDetailModal({ open, dispatch, approver, onClose, onChanged }: M
   const [busy, setBusy] = useState<"approve" | "reject" | "recall" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ActionResult | null>(null);
+  // Per-book recall selection. Pre-populates with any books staff has
+  // already requested for recall — admin just confirms or adjusts.
+  const [selectedToRecall, setSelectedToRecall] = useState<Set<string>>(new Set());
 
   // Reset state whenever the modal opens a different dispatch.
   useEffect(() => {
     setError(null);
     setBusy(null);
     setResult(null);
-  }, [dispatch?.dispatchId]);
+    setSelectedToRecall(
+      new Set(
+        (dispatch?.books ?? [])
+          .filter((b) => b.status === "Recall Requested")
+          .map((b) => b.bookId)
+      )
+    );
+  }, [dispatch?.dispatchId, dispatch?.books]);
 
   if (!dispatch) return <Modal open={open} onClose={onClose} title="">{null}</Modal>;
 
@@ -356,18 +387,33 @@ function DispatchDetailModal({ open, dispatch, approver, onClose, onChanged }: M
     }
   }
 
-  async function recall() {
+  /**
+   * `bookIds` undefined → admin override; recalls everything in the
+   * dispatch that's still Out or Recall Requested.
+   * `bookIds` provided → recalls only those rows (e.g. confirming the
+   * staff-requested ones).
+   */
+  async function recall(bookIds?: string[]) {
     if (!dispatch) return;
     setBusy("recall");
     setError(null);
     try {
-      await api.recallBook(dispatch.dispatchId, approver);
+      await api.recallBook(dispatch.dispatchId, approver, bookIds);
       setResult({ action: "recalled" });
     } catch (e) {
       setError(e instanceof ApiError ? e.message : String(e));
     } finally {
       setBusy(null);
     }
+  }
+
+  function toggleBook(bookId: string) {
+    setSelectedToRecall((cur) => {
+      const next = new Set(cur);
+      if (next.has(bookId)) next.delete(bookId);
+      else next.add(bookId);
+      return next;
+    });
   }
 
   function finish() {
@@ -455,6 +501,12 @@ function DispatchDetailModal({ open, dispatch, approver, onClose, onChanged }: M
   }
 
   // -------- Detail state (before action) --------
+  const actionableBooks = dispatch.books.filter(
+    (b) => b.status === "Out in Field" || b.status === "Recall Requested"
+  );
+  const hasActionable = actionableBooks.length > 0;
+  const selectedCount = selectedToRecall.size;
+
   return (
     <Modal
       open={open}
@@ -472,10 +524,26 @@ function DispatchDetailModal({ open, dispatch, approver, onClose, onChanged }: M
               </Button>
             </>
           )}
-          {dispatch.status === "Out in Field" && (
-            <Button variant="primary" disabled={busy !== null} onClick={recall}>
-              {busy === "recall" ? "Recalling…" : "Mark all books recalled"}
-            </Button>
+          {dispatch.status !== "Pending Approval" && hasActionable && (
+            <>
+              <Button
+                variant="secondary"
+                disabled={busy !== null}
+                onClick={() => recall()}
+                title="Recall every book still out — fast-path override"
+              >
+                {busy === "recall" && selectedCount === 0 ? "Recalling…" : "Mark all recalled"}
+              </Button>
+              <Button
+                variant="primary"
+                disabled={busy !== null || selectedCount === 0}
+                onClick={() => recall(Array.from(selectedToRecall))}
+              >
+                {busy === "recall" && selectedCount > 0
+                  ? "Recalling…"
+                  : `Recall selected (${selectedCount})`}
+              </Button>
+            </>
           )}
         </>
       }
@@ -485,6 +553,13 @@ function DispatchDetailModal({ open, dispatch, approver, onClose, onChanged }: M
       <div style={{ marginBottom: 12 }}>
         <StatusBadge status={dispatch.status} overdue={overdue} />
       </div>
+
+      {dispatch.status === "Recall Requested" && (
+        <Alert variant="amber">
+          Staff has requested recall of the highlighted books. Confirm by
+          tapping <strong>Recall selected</strong>.
+        </Alert>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
         <DetailRow label="Salesperson" value={dispatch.salesperson} />
@@ -505,19 +580,45 @@ function DispatchDetailModal({ open, dispatch, approver, onClose, onChanged }: M
         Books ({dispatch.books.length})
       </h3>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {dispatch.books.map((b, i) => (
-          <div
-            key={`${b.bookId}|${i}`}
-            style={{
-              padding: "8px 12px",
-              background: "var(--sand-dark)",
-              borderRadius: "var(--radius)",
-            }}
-          >
-            <div style={{ fontWeight: 500 }}>{b.name}</div>
-            <div style={{ fontSize: 12, color: "var(--ink-3)" }}>{b.category}</div>
-          </div>
-        ))}
+        {dispatch.books.map((b, i) => {
+          const isActionable =
+            b.status === "Out in Field" || b.status === "Recall Requested";
+          const isChecked = selectedToRecall.has(b.bookId);
+          const isRequested = b.status === "Recall Requested";
+          return (
+            <label
+              key={`${b.bookId}|${i}`}
+              style={{
+                display: "grid",
+                gridTemplateColumns: isActionable ? "auto 1fr auto" : "1fr auto",
+                alignItems: "center",
+                gap: 10,
+                padding: "8px 12px",
+                background: isRequested
+                  ? "var(--amber-light)"
+                  : "var(--sand-dark)",
+                borderRadius: "var(--radius)",
+                cursor: isActionable ? "pointer" : "default",
+              }}
+            >
+              {isActionable && (
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => toggleBook(b.bookId)}
+                />
+              )}
+              <div>
+                <div style={{ fontWeight: 500 }}>{b.name}</div>
+                <div style={{ fontSize: 12, color: "var(--ink-3)" }}>
+                  {b.category}
+                  {b.recalledAt && ` · recalled ${new Date(b.recalledAt).toLocaleDateString()}`}
+                </div>
+              </div>
+              <StatusBadge status={b.status} />
+            </label>
+          );
+        })}
       </div>
     </Modal>
   );

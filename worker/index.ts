@@ -10,6 +10,7 @@ import { handleGetBooks } from "./routes/getBooks";
 import { handleLogBook } from "./routes/logBook";
 import { handleApproveLink, handleApprovePost } from "./routes/approveBook";
 import { handleRecallBook } from "./routes/recallBook";
+import { handleRequestRecall } from "./routes/requestRecall";
 import { handleAdminLogin } from "./routes/adminLogin";
 import { handleUpdateConfig } from "./routes/updateConfig";
 import { runOverdueCheck } from "./routes/overdueCheck";
@@ -91,6 +92,10 @@ export default {
       if (url.pathname === "/api/recall-book") {
         if (method !== "POST") return methodNotAllowed();
         return await handleRecallBook(request, env);
+      }
+      if (url.pathname === "/api/request-recall") {
+        if (method !== "POST") return methodNotAllowed();
+        return await handleRequestRecall(request, env);
       }
 
       // Unknown /api path

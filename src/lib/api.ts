@@ -107,11 +107,25 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
-  recallBook: (dispatchId: string, approver: string) =>
-    request<{ ok: true }>("/api/recall-book", {
+  /**
+   * Mark books as recalled (admin action).
+   *   - `bookIds` empty / omitted → recall everything in the dispatch
+   *     that's currently Out or Recall Requested (admin override).
+   *   - `bookIds` provided → recall only those rows (e.g. approving
+   *     the specific books staff has requested).
+   */
+  recallBook: (dispatchId: string, approver: string, bookIds?: string[]) =>
+    request<{ ok: true; recalled: number }>("/api/recall-book", {
       method: "POST",
-      body: JSON.stringify({ dispatchId, approver }),
+      body: JSON.stringify({ dispatchId, approver, bookIds }),
       admin: true,
+    }),
+  /** Staff-initiated recall request. Flips listed books to "Recall
+   *  Requested" — admin still has to confirm via recallBook(). */
+  requestRecall: (dispatchId: string, bookIds: string[]) =>
+    request<{ ok: true; updated: number }>("/api/request-recall", {
+      method: "POST",
+      body: JSON.stringify({ dispatchId, bookIds }),
     }),
   approveBook: (dispatchId: string, action: "approve" | "reject", approver: string) =>
     request<{ ok: true; alreadyActioned?: boolean; actionedBy?: string }>(

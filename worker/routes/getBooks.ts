@@ -16,6 +16,14 @@ import { DISPATCH_PROP } from "../lib/schema";
 import { DEMO_DISPATCHES, demoJson, isDemo } from "../lib/demo";
 import { requireAdminGate } from "../lib/auth";
 
+interface BookOut {
+  bookId: string;
+  name: string;
+  category: string;
+  status: string;
+  recalledAt?: string;
+}
+
 interface DispatchOut {
   dispatchId: string;
   salesperson: string;
@@ -30,7 +38,23 @@ interface DispatchOut {
   approvedBy?: string;
   approvedAt?: string;
   recalledAt?: string;
-  books: Array<{ bookId: string; name: string; category: string }>;
+  books: BookOut[];
+}
+
+/**
+ * Reduce per-book statuses to a single dispatch-level status. Order
+ * matters — `Recall Requested` outranks anything else because that's
+ * the state that needs admin attention; mixed Out/Recalled becomes
+ * "Partially Recalled" only when no requests are pending.
+ */
+function deriveDispatchStatus(books: BookOut[]): string {
+  if (books.length === 0) return "Pending Approval";
+  const set = new Set(books.map((b) => b.status));
+  if (set.has("Recall Requested")) return "Recall Requested";
+  if (set.has("Recalled") && set.has("Out in Field")) return "Partially Recalled";
+  if (set.size === 1) return books[0]!.status;
+  // Mixed Pending+anything is unexpected; fall back to first row.
+  return books[0]!.status;
 }
 
 export async function handleGetBooks(
@@ -89,7 +113,7 @@ export async function handleGetBooks(
         returnBy: readDate(p[DISPATCH_PROP.returnBy]),
         dateSent: readDate(p[DISPATCH_PROP.dateSent]),
         purpose: readRichText(p[DISPATCH_PROP.purpose]),
-        status: readSelect(p[DISPATCH_PROP.status]),
+        status: "Pending Approval", // derived after the loop
         approvedBy: readRichText(p[DISPATCH_PROP.approvedBy]) || undefined,
         approvedAt: readDate(p[DISPATCH_PROP.approvedAt]) || undefined,
         recalledAt: readDate(p[DISPATCH_PROP.recalledAt]) || undefined,
@@ -97,11 +121,20 @@ export async function handleGetBooks(
       };
       byId.set(dispatchId, entry);
     }
+    const bookStatus = readSelect(p[DISPATCH_PROP.status]);
+    const bookRecalledAt = readDate(p[DISPATCH_PROP.recalledAt]);
     entry.books.push({
       bookId: page.id,
       name: readTitle(p[DISPATCH_PROP.bookName]),
       category: readSelect(p[DISPATCH_PROP.category]),
+      status: bookStatus,
+      recalledAt: bookRecalledAt || undefined,
     });
+  }
+
+  // Now that every dispatch has all its books, derive the rollup status.
+  for (const entry of byId.values()) {
+    entry.status = deriveDispatchStatus(entry.books);
   }
 
   // Apply the salesperson filter in JS (see comment above the Notion query).
