@@ -67,7 +67,7 @@ export function SettingsView() {
         approver1: approver1.trim(),
         approver2: approver2.trim(),
       };
-      if (wantsPinChange) patch.adminPin = newPin;
+      if (wantsPinChange) patch.myPin = newPin;
 
       const res = await api.updateConfig(patch);
 
@@ -142,11 +142,10 @@ export function SettingsView() {
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
-        <h3 style={{ marginBottom: 6, fontSize: 16 }}>Change admin PIN</h3>
+        <h3 style={{ marginBottom: 6, fontSize: 16 }}>Change your PIN</h3>
         <p style={{ color: "var(--ink-3)", marginBottom: 14, fontSize: 13 }}>
-          Leave both fields blank to keep the current PIN. Changing it will
-          sign out other browsers (they'll be re-prompted) — your session
-          stays in.
+          You're rotating your own PIN — the other approver's PIN is unaffected.
+          Leave both fields blank to keep your current PIN.
         </p>
         <div className="field-row">
           <Field label="New PIN">

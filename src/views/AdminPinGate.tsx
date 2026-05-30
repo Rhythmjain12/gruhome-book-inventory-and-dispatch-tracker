@@ -1,6 +1,7 @@
-// PIN entry screen shown before the admin dashboard loads.
-// On success the PIN is stored in sessionStorage (clears on tab close)
-// and the api client attaches it as a bearer token automatically.
+// PIN entry screen shown after the approver has been picked. Each
+// approver has their own PIN (see worker/lib/configStore.ts). On
+// success the PIN is stored in sessionStorage and attached as a
+// bearer token on every privileged request.
 
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "../lib/api";
@@ -8,10 +9,12 @@ import { setAdminPin } from "../lib/session";
 import { Alert, Button } from "../components/primitives";
 
 interface Props {
+  approver: string;
   onUnlock: () => void;
+  onBack: () => void;
 }
 
-export function AdminPinGate({ onUnlock }: Props) {
+export function AdminPinGate({ approver, onUnlock, onBack }: Props) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -27,7 +30,7 @@ export function AdminPinGate({ onUnlock }: Props) {
     setBusy(true);
     setError(null);
     try {
-      await api.adminLogin(pin);
+      await api.adminLogin(approver, pin);
       setAdminPin(pin);
       onUnlock();
     } catch (e2) {
@@ -54,9 +57,11 @@ export function AdminPinGate({ onUnlock }: Props) {
         >
           Restricted
         </div>
-        <h2 style={{ marginBottom: 6 }}>Manager access</h2>
+        <h2 style={{ marginBottom: 6 }}>
+          Welcome back, {approver.split(/\s+/)[0]}
+        </h2>
         <p style={{ color: "var(--ink-3)", marginBottom: 22, fontSize: 14 }}>
-          Enter the admin PIN to view dispatches and action approvals.
+          Enter <strong style={{ color: "var(--ink-2)" }}>your</strong> admin PIN.
         </p>
 
         {error && <Alert variant="red">{error}</Alert>}
@@ -88,6 +93,21 @@ export function AdminPinGate({ onUnlock }: Props) {
             {busy ? "Verifying…" : "Unlock"}
           </Button>
         </form>
+        <button
+          type="button"
+          onClick={onBack}
+          style={{
+            marginTop: 14,
+            background: "none",
+            border: "none",
+            color: "var(--ink-3)",
+            fontSize: 13,
+            cursor: "pointer",
+            padding: 0,
+          }}
+        >
+          Not {approver.split(/\s+/)[0]}? Pick again
+        </button>
       </div>
     </div>
   );

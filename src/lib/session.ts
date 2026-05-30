@@ -74,3 +74,9 @@ function useStored(key: string): [string | null, (next: string | null) => void] 
 
 export const useSalesperson = () => useStored(KEYS.salesperson);
 export const useApprover = () => useStored(KEYS.approver);
+
+/** Non-React reader for the api client — needed to attach the
+ *  X-Approver header automatically on admin requests. */
+export function getApprover(): string | null {
+  return read(KEYS.approver);
+}

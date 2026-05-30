@@ -21,7 +21,7 @@ import { md, sendPumble } from "../lib/pumble";
 import { DISPATCH_PROP } from "../lib/schema";
 import { renderConfirmationPage } from "../lib/html";
 import { isDemo } from "../lib/demo";
-import { requireAdmin } from "../lib/auth";
+import { requireAdminGate } from "../lib/auth";
 
 type Action = "approve" | "reject";
 
@@ -174,7 +174,7 @@ export async function handleApproveLink(env: Env, url: URL): Promise<Response> {
 }
 
 export async function handleApprovePost(request: Request, env: Env): Promise<Response> {
-  const unauthorized = await requireAdmin(request, env);
+  const unauthorized = await requireAdminGate(request, env);
   if (unauthorized) return unauthorized;
 
   let body: { dispatchId?: string; action?: Action; approver?: string };

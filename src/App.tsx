@@ -77,20 +77,32 @@ export default function App() {
 
       {config &&
         (view === "admin" ? (
-          !unlocked ? (
-            <AdminPinGate onUnlock={() => setUnlocked(true)} />
-          ) : approver ? (
-            <AdminView
-              approver={approver}
-              onSignOut={() => setApprover(null)}
-              onLock={lockAdmin}
-            />
-          ) : (
+          !approver ? (
             <IdentityGate
               title="Who's viewing?"
-              subtitle="Approve, reject, and recall actions will be attributed to this name."
+              subtitle="Pick your name, then enter your PIN. Each approver has their own."
               options={config.approvers}
-              onPick={setApprover}
+              onPick={(name) => {
+                // Switching identity should clear any prior PIN —
+                // PINs are scoped per approver now.
+                setAdminPin(null);
+                setApprover(name);
+              }}
+            />
+          ) : !unlocked ? (
+            <AdminPinGate
+              approver={approver}
+              onUnlock={() => setUnlocked(true)}
+              onBack={() => setApprover(null)}
+            />
+          ) : (
+            <AdminView
+              approver={approver}
+              onSignOut={() => {
+                setAdminPin(null);
+                setApprover(null);
+              }}
+              onLock={lockAdmin}
             />
           )
         ) : salesperson ? (

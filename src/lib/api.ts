@@ -8,7 +8,7 @@
 // UI re-shows the PIN gate.
 
 import type { AppConfig, Book, Dispatch } from "../types";
-import { getAdminPin, setAdminPin } from "./session";
+import { getAdminPin, getApprover, setAdminPin } from "./session";
 
 export class ApiError extends Error {
   status: number;
@@ -31,7 +31,9 @@ async function request<T>(path: string, opts: RequestOpts = {}): Promise<T> {
   };
   if (admin) {
     const pin = getAdminPin();
+    const approver = getApprover();
     if (pin) headers.authorization = `Bearer ${pin}`;
+    if (approver) headers["x-approver"] = approver;
   }
 
   let res: Response;
@@ -68,16 +70,19 @@ export const api = {
       `/api/get-books${salesperson ? `?salesperson=${encodeURIComponent(salesperson)}` : ""}`,
       { admin: !salesperson }
     ),
-  adminLogin: (pin: string) =>
+  adminLogin: (approver: string, pin: string) =>
     request<{ ok: true }>("/api/admin-login", {
       method: "POST",
-      body: JSON.stringify({ pin }),
+      body: JSON.stringify({ approver, pin }),
     }),
   updateConfig: (patch: {
     salespeople?: string[];
     approver1?: string;
     approver2?: string;
-    adminPin?: string;
+    /** The *active* approver's new PIN. The server uses the
+     *  X-Approver header to figure out which slot to update. An
+     *  approver can never set the other approver's PIN. */
+    myPin?: string;
   }) =>
     request<{
       salespeople: string[];

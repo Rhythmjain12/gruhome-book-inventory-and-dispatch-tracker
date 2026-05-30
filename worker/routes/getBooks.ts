@@ -14,7 +14,7 @@ import {
 } from "../lib/notion";
 import { DISPATCH_PROP } from "../lib/schema";
 import { DEMO_DISPATCHES, demoJson, isDemo } from "../lib/demo";
-import { requireAdmin } from "../lib/auth";
+import { requireAdminGate } from "../lib/auth";
 
 interface DispatchOut {
   dispatchId: string;
@@ -44,7 +44,7 @@ export async function handleGetBooks(
   // Salesperson-scope reads are part of the staff view and remain open
   // (Phase 1 honor system — see SETUP.md §7).
   if (!salesperson) {
-    const unauthorized = await requireAdmin(request, env);
+    const unauthorized = await requireAdminGate(request, env);
     if (unauthorized) return unauthorized;
   }
 

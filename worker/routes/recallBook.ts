@@ -17,10 +17,10 @@ import {
 import { md, sendPumble } from "../lib/pumble";
 import { DISPATCH_PROP } from "../lib/schema";
 import { demoJson, isDemo } from "../lib/demo";
-import { requireAdmin } from "../lib/auth";
+import { requireAdminGate } from "../lib/auth";
 
 export async function handleRecallBook(request: Request, env: Env): Promise<Response> {
-  const unauthorized = await requireAdmin(request, env);
+  const unauthorized = await requireAdminGate(request, env);
   if (unauthorized) return unauthorized;
 
   let body: { dispatchId?: string; approver?: string };
