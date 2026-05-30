@@ -56,15 +56,18 @@ export async function handleGetBooks(
   }
 
 
-  const filter = salesperson
-    ? {
-        property: DISPATCH_PROP.salesperson,
-        select: { equals: salesperson },
-      }
-    : undefined;
-
+  // NB: we deliberately don't push the salesperson filter into Notion.
+  // Notion's REST API returns HTTP 400 when you filter a Select column
+  // by an option value that doesn't exist in the column yet — and
+  // Salesperson options are auto-created lazily on first dispatch. A
+  // brand-new salesperson hitting "My dispatches" before they've ever
+  // dispatched would otherwise see a 400.
+  //
+  // The dispatch DB is small (tens to low thousands of rows realistic
+  // ceiling for this app), so pulling all rows and filtering in JS is
+  // both faster end-to-end (one round trip, no filter-parse cost) and
+  // robust against Notion's Select-equals quirk.
   const pages = await queryDatabaseAll(env.NOTION_TOKEN, env.NOTION_DISPATCH_DB_ID, {
-    ...(filter ? { filter } : {}),
     sorts: [{ property: DISPATCH_PROP.dateSent, direction: "descending" }],
   });
 
@@ -101,7 +104,13 @@ export async function handleGetBooks(
     });
   }
 
-  const out = Array.from(byId.values());
+  // Apply the salesperson filter in JS (see comment above the Notion query).
+  // String-equality match — same semantics as the Notion filter would have
+  // had, just without the 400-on-missing-option behaviour.
+  const all = Array.from(byId.values());
+  const out = salesperson
+    ? all.filter((d) => d.salesperson === salesperson)
+    : all;
   return new Response(JSON.stringify(out), {
     headers: { "content-type": "application/json" },
   });
